@@ -1,0 +1,10 @@
+{
+  "routes": {
+    "/": {},
+    "/login": {},
+    "/mi-hijo": {},
+    "/mi-rendimiento": {},
+    "/no-autorizado": {},
+    "/profesor": {}
+  }
+}
