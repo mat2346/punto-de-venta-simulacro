@@ -314,7 +314,6 @@ export class NotasGraficoComponent implements OnChanges, OnInit {
       type: 'line',
       animations: {
         enabled: true,
-        easing: 'easeinout',
         speed: 800
       },
       toolbar: {
