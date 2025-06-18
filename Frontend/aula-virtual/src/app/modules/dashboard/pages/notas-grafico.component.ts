@@ -1,9 +1,18 @@
-import { Component, Input, OnChanges, SimpleChanges, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Chart, ChartConfiguration, ChartData, registerables } from 'chart.js';
-
-// Registrar todos los componentes de Chart.js
-Chart.register(...registerables);
+import { NgApexchartsModule } from 'ng-apexcharts';
+import {
+  ApexAxisChartSeries,
+  ApexChart,
+  ApexXAxis,
+  ApexDataLabels,
+  ApexTooltip,
+  ApexStroke,
+  ApexYAxis,
+  ApexGrid,
+  ApexLegend,
+  ApexMarkers
+} from 'ng-apexcharts';
 
 interface Actividad {
   id?: number;
@@ -18,10 +27,24 @@ interface Actividad {
   tipo?: string;
 }
 
+export type ChartOptions = {
+  series: ApexAxisChartSeries;
+  chart: ApexChart;
+  xaxis: ApexXAxis;
+  yaxis: ApexYAxis;
+  dataLabels: ApexDataLabels;
+  grid: ApexGrid;
+  stroke: ApexStroke;
+  tooltip: ApexTooltip;
+  legend: ApexLegend;
+  markers: ApexMarkers;
+  colors: string[];
+};
+
 @Component({
   selector: 'app-notas-grafico',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NgApexchartsModule],
   template: `
     <div class="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-6 border border-gray-100">
       <!-- Header con estadísticas y controles -->
@@ -160,13 +183,22 @@ interface Actividad {
         </div>
       </div>
 
-      <!-- Gráfico -->
+      <!-- Gráfico ApexCharts -->
       <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-100 mb-4" 
            *ngIf="actividadesValidas.length > 0; else noDataTemplate">
-        <canvas #chartCanvas 
-                class="w-full"
-                [style.height.px]="altura">
-        </canvas>
+        <apx-chart
+          [series]="chartOptions.series"
+          [chart]="chartOptions.chart"
+          [xaxis]="chartOptions.xaxis"
+          [yaxis]="chartOptions.yaxis"
+          [dataLabels]="chartOptions.dataLabels"
+          [grid]="chartOptions.grid"
+          [stroke]="chartOptions.stroke"
+          [tooltip]="chartOptions.tooltip"
+          [legend]="chartOptions.legend"
+          [markers]="chartOptions.markers"
+          [colors]="chartOptions.colors">
+        </apx-chart>
       </div>
 
       <!-- Template cuando no hay datos -->
@@ -264,13 +296,10 @@ interface Actividad {
     </div>
   `
 })
-export class NotasGraficoComponent implements OnChanges, AfterViewInit, OnDestroy {
+export class NotasGraficoComponent implements OnChanges, OnInit {
   @Input() actividades: Actividad[] = [];
   @Input() mostrarPorActividad: boolean = false;
   @Input() altura: number = 400;
-  
-  @ViewChild('chartCanvas', { static: true }) chartCanvas!: ElementRef<HTMLCanvasElement>;
-  private chart?: Chart;
   
   actividadesValidas: Actividad[] = [];
   mejorDimension: string = '';
@@ -278,25 +307,101 @@ export class NotasGraficoComponent implements OnChanges, AfterViewInit, OnDestro
   tendencia: 'ascendente' | 'descendente' | 'estable' = 'estable';
   promedioGeneral: number = 0;
 
-  ngAfterViewInit(): void {
+  public chartOptions: ChartOptions = {
+    series: [],
+    chart: {
+      height: this.altura,
+      type: 'line',
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800
+      },
+      toolbar: {
+        show: true,
+        tools: {
+          download: true,
+          selection: false,
+          zoom: false,
+          zoomin: false,
+          zoomout: false,
+          pan: false,
+          reset: false
+        }
+      }
+    },
+    dataLabels: {
+      enabled: false
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    xaxis: {
+      categories: [],
+      title: {
+        text: 'Fecha de Entrega',
+        style: {
+          fontWeight: 'bold'
+        }
+      }
+    },
+    yaxis: {
+      min: 0,
+      max: 100,
+      title: {
+        text: 'Nota (%)',
+        style: {
+          fontWeight: 'bold'
+        }
+      },
+      labels: {
+        formatter: function (value) {
+          return value + '%';
+        }
+      }
+    },
+    tooltip: {
+      y: {
+        formatter: function (value) {
+          return value + '%';
+        }
+      }
+    },
+    legend: {
+      show: false
+    },
+    grid: {
+      borderColor: '#f0f0f0',
+      strokeDashArray: 5
+    },
+    markers: {
+      size: 6,
+      colors: ['#ffffff'],
+      strokeColors: ['#a855f7', '#2563eb', '#facc15', '#22c55e'],
+      strokeWidth: 2,
+      hover: {
+        size: 8
+      }
+    },
+    colors: ['#a855f7', '#2563eb', '#facc15', '#22c55e']
+  };
+
+  ngOnInit(): void {
+    this.chartOptions.chart.height = this.altura;
     this.actualizarActividadesValidas();
     this.calcularEstadisticas();
-    this.crearGrafico();
+    this.actualizarGrafico();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['actividades']) {
       this.actualizarActividadesValidas();
       this.calcularEstadisticas();
-      if (this.chart) {
-        this.actualizarGrafico();
-      }
+      this.actualizarGrafico();
     }
-  }
-
-  ngOnDestroy(): void {
-    if (this.chart) {
-      this.chart.destroy();
+    if (changes['altura']) {
+      this.chartOptions.chart.height = this.altura;
     }
   }
 
@@ -306,29 +411,11 @@ export class NotasGraficoComponent implements OnChanges, AfterViewInit, OnDestro
     );
   }
 
-  private crearGrafico(): void {
-    if (!this.chartCanvas?.nativeElement || this.actividadesValidas.length === 0) return;
-
-    const ctx = this.chartCanvas.nativeElement.getContext('2d');
-    if (!ctx) return;
-
-    this.chart = new Chart(ctx, {
-      type: 'line',
-      data: this.getChartData(),
-      options: this.getChartOptions()
-    });
-  }
-
   public actualizarGrafico(): void {
-    if (!this.chart) return;
-    
-    this.chart.data = this.getChartData();
-    this.chart.update();
-  }
-
-  private getChartData(): ChartData<'line'> {
     if (this.actividadesValidas.length === 0) {
-      return { labels: [], datasets: [] };
+      this.chartOptions.series = [];
+      this.chartOptions.xaxis.categories = [];
+      return;
     }
 
     // Ordenar actividades por fecha
@@ -368,141 +455,36 @@ export class NotasGraficoComponent implements OnChanges, AfterViewInit, OnDestro
         return actividad ? actividad.nota : null;
       });
 
-    const datasets = [
+    const series = [
       {
-        label: 'Ser',
-        data: getNotasPorDimension('ser'),
-        borderColor: '#a855f7',
-        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-        tension: 0.4,
-        fill: false,
-        pointRadius: 6,
-        pointBackgroundColor: '#a855f7',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointHoverRadius: 8,
-        spanGaps: true
+        name: 'Ser',
+        data: getNotasPorDimension('ser')
       },
       {
-        label: 'Saber',
-        data: getNotasPorDimension('saber'),
-        borderColor: '#2563eb',
-        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-        tension: 0.4,
-        fill: false,
-        pointRadius: 6,
-        pointBackgroundColor: '#2563eb',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointHoverRadius: 8,
-        spanGaps: true
+        name: 'Saber',
+        data: getNotasPorDimension('saber')
       },
       {
-        label: 'Hacer',
-        data: getNotasPorDimension('hacer'),
-        borderColor: '#facc15',
-        backgroundColor: 'rgba(250, 204, 21, 0.1)',
-        tension: 0.4,
-        fill: false,
-        pointRadius: 6,
-        pointBackgroundColor: '#facc15',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointHoverRadius: 8,
-        spanGaps: true
+        name: 'Hacer',
+        data: getNotasPorDimension('hacer')
       },
       {
-        label: 'Decidir',
-        data: getNotasPorDimension('decidir'),
-        borderColor: '#22c55e',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        tension: 0.4,
-        fill: false,
-        pointRadius: 6,
-        pointBackgroundColor: '#22c55e',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointHoverRadius: 8,
-        spanGaps: true
+        name: 'Decidir',
+        data: getNotasPorDimension('decidir')
       }
-    ].filter(dataset => dataset.data.some(value => value !== null));
+    ].filter(serie => serie.data.some(value => value !== null));
 
-    return {
-      labels: fechasUnicas,
-      datasets
-    };
-  }
-
-  private getChartOptions(): ChartConfiguration<'line'>['options'] {
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        intersect: false,
-        mode: 'index'
-      },
-      plugins: {
-        legend: { 
-          display: false
-        },
-        tooltip: { 
-          enabled: true,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#e5e7eb',
-          borderWidth: 1,
-          cornerRadius: 8,
-          displayColors: true,
-          callbacks: {
-            title: (context) => `Fecha: ${context[0].label}`,
-            label: (context) => `${context.dataset.label}: ${context.parsed.y}%`
-          }
-        }
-      },
-      scales: {
-        y: {
-          min: 0,
-          max: 100,
-          title: { 
-            display: true, 
-            text: 'Nota (%)',
-            font: { weight: 'bold' }
-          },
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            callback: function(value) {
-              return value + '%';
-            }
-          }
-        },
-        x: {
-          title: { 
-            display: true, 
-            text: 'Fecha de Entrega',
-            font: { weight: 'bold' }
-          },
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          }
-        }
-      },
-      elements: {
-        line: {
-          borderWidth: 3
-        },
-        point: {
-          radius: 6,
-          hoverRadius: 8,
-          borderWidth: 2
-        }
+    this.chartOptions = {
+      ...this.chartOptions,
+      series: series,
+      xaxis: {
+        ...this.chartOptions.xaxis,
+        categories: fechasUnicas
       }
     };
   }
 
-  // Métodos auxiliares (conservados del código original)
+  // Mantener todos los métodos auxiliares del código original
   getColorClasePromedio(promedio: number): string {
     if (promedio >= 90) return 'text-green-600';
     if (promedio >= 80) return 'text-blue-600';
