@@ -42,7 +42,7 @@ jobs:
           action: "upload"
           app_location: "./Frontend/aula-virtual"
           api_location: ""
-          output_location: "dist/aula-virtual/browser"
+          output_location: "Frontend/aula-virtual/dist/aula-virtual"
           skip_app_build: true
 
   close_pull_request_job:
