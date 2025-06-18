@@ -9,7 +9,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:aula-virtual": "node dist/aula-virtual/server/server.mjs",
-     "postbuild": "copy src\\index.html dist\\aula-virtual\\browser\\index.html"
+    "postbuild": "cp src/index.html dist/aula-virtual/browser/index.html"
     
   },
   "private": true,
