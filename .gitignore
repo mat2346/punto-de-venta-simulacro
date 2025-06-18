@@ -1,0 +1,6 @@
+# Ignora dependencias y builds
+node_modules/
+dist/
+
+# Archivos de entorno sensibles
+.env
