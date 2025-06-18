@@ -312,8 +312,8 @@ interface Tab {
                           </td>
                           
                           <!-- Celdas para cada dimensión -->
-                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-purple-50': actividad.dimension === 'ser'}">
-                            <span *ngIf="actividad.dimension === 'ser'" 
+                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-purple-50': actividad.dimension?.toLowerCase() === 'ser'}">
+                            <span *ngIf="actividad.dimension?.toLowerCase() === 'ser'" 
                               class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
                               [ngClass]="{
                                 'bg-green-100 text-green-800': actividad.nota >= 80,
@@ -324,8 +324,8 @@ interface Tab {
                               {{ actividad.nota }}
                             </span>
                           </td>
-                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-blue-50': actividad.dimension === 'saber'}">
-                            <span *ngIf="actividad.dimension === 'saber'" 
+                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-blue-50': actividad.dimension?.toLowerCase() === 'saber'}">
+                            <span *ngIf="actividad.dimension?.toLowerCase() === 'saber'" 
                               class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
                               [ngClass]="{
                                 'bg-green-100 text-green-800': actividad.nota >= 80,
@@ -336,8 +336,8 @@ interface Tab {
                               {{ actividad.nota }}
                             </span>
                           </td>
-                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-yellow-50': actividad.dimension === 'hacer'}">
-                            <span *ngIf="actividad.dimension === 'hacer'" 
+                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-yellow-50': actividad.dimension?.toLowerCase() === 'hacer'}">
+                            <span *ngIf="actividad.dimension?.toLowerCase() === 'hacer'" 
                               class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
                               [ngClass]="{
                                 'bg-green-100 text-green-800': actividad.nota >= 80,
@@ -348,8 +348,8 @@ interface Tab {
                               {{ actividad.nota }}
                             </span>
                           </td>
-                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-green-50': actividad.dimension === 'decidir'}">
-                            <span *ngIf="actividad.dimension === 'decidir'" 
+                          <td class="px-4 py-3 text-center" [ngClass]="{'bg-green-50': actividad.dimension?.toLowerCase() === 'decidir'}">
+                            <span *ngIf="actividad.dimension?.toLowerCase() === 'decidir'" 
                               class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
                               [ngClass]="{
                                 'bg-green-100 text-green-800': actividad.nota >= 80,
@@ -593,6 +593,7 @@ export class AlumnoMateriaDetalleComponent implements OnInit {
       next: (data) => {
         this.detalleMateria = data.materia;
         this.actividades = data.actividades;
+        console.log('Actividades cargadas:', this.actividades); // Añadir este log
         this.asistencia = data.asistencia;
         
         // Actualizar badges de las pestañas
@@ -659,30 +660,25 @@ export class AlumnoMateriaDetalleComponent implements OnInit {
       act => act.dimension?.toLowerCase() === dimension.toLowerCase()
     );
     
-    // Lista de calificaciones
-    let calificaciones: number[] = [];
-    
-    // Agregar notas de actividades
-    actividadesDimension.forEach(act => {
-      if (act.nota !== undefined && act.nota !== null) {
-        calificaciones.push(Number(act.nota));
-      }
-    });
-    
-    // Agregar nota de asistencia en dimensión "ser" si se solicita
-    if (dimension === 'ser' && incluirAsistencia) {
-      calificaciones.push(this.calcularNotaAsistencia());
-    }
-    
-    // Calcular promedio
-    if (calificaciones.length === 0) {
+    if (actividadesDimension.length === 0) {
       return 'N/A';
     }
     
-    const suma = calificaciones.reduce((acc, nota) => acc + nota, 0);
-    return (suma / calificaciones.length).toFixed(1);
+    let sumaNota = 0;
+    actividadesDimension.forEach(act => {
+      if (act.nota !== undefined && act.nota !== null) {
+        sumaNota += act.nota;
+      }
+    });
+    
+    if (incluirAsistencia && this.detalleMateria?.asistencia) {
+      sumaNota += this.detalleMateria.asistencia;
+      return (sumaNota / (actividadesDimension.length + 1)).toFixed(1);
+    }
+    
+    return (sumaNota / actividadesDimension.length).toFixed(1);
   }
-
+  
   // Calcular promedio general incluyendo asistencia
   calcularPromedioGeneral(incluirAsistencia: boolean = false): string {
     const actividadesEntregadas = this.getActividadesEntregadas();
@@ -714,25 +710,48 @@ export class AlumnoMateriaDetalleComponent implements OnInit {
     this.cargandoPrediccion = true;
     this.prediccionNota = null;
 
-    const actividadesEntregadas = this.getActividadesEntregadas();
-    const payload = {
-      actividades: actividadesEntregadas.map(act => ({
-        dimension: act.dimension,
-        nota: act.nota
-      })),
-      asistencia_porcentaje: this.asistencia.porcentaje
-    };
+    // Calculamos los promedios por dimensión usando los métodos existentes
+    const promedioSer = this.calcularPromedioPorDimension('ser', true);
+    const promedioSaber = this.calcularPromedioPorDimension('saber');
+    const promedioHacer = this.calcularPromedioPorDimension('hacer');
+    const promedioDecidir = this.calcularPromedioPorDimension('decidir');
 
-    // Cambiar la URL para usar environment
-    this.http.post<any>(environment.apiUrl + 'api/predecir/', payload)
+    // Creamos el payload en el formato exacto que espera el backend
+    const payload: any = {};
+    
+    // Solo agregamos las dimensiones que tienen valores (no N/A)
+    if (promedioSer !== 'N/A') payload.ser = parseFloat(promedioSer);
+    if (promedioSaber !== 'N/A') payload.saber = parseFloat(promedioSaber);
+    if (promedioHacer !== 'N/A') payload.hacer = parseFloat(promedioHacer);
+    if (promedioDecidir !== 'N/A') payload.decidir = parseFloat(promedioDecidir);
+
+    console.log('Enviando datos para predicción:', payload);
+
+    // Verificar que haya al menos una dimensión con valor
+    if (Object.keys(payload).length === 0) {
+      console.error('No hay notas para predecir');
+      this.cargandoPrediccion = false;
+      return;
+    }
+
+    // Enviar al backend con el formato correcto
+    this.http.post<any>(`${environment.apiUrl}api/predecir/`, payload)
       .subscribe({
         next: (response) => {
-          this.prediccionNota = Math.round(response.nota_predicha).toString();
+          console.log('Respuesta de predicción:', response);
+          this.prediccionNota = response.nota_final_estimada.toFixed(1);
           this.cargandoPrediccion = false;
         },
         error: (error) => {
           console.error('Error en predicción:', error);
           this.cargandoPrediccion = false;
+          
+          // Mostrar mensaje de error más amigable
+          if (error.status === 400) {
+            alert('No hay suficientes notas para hacer una predicción precisa.');
+          } else {
+            alert('Ocurrió un error al predecir la nota. Intenta nuevamente.');
+          }
         }
       });
   }
