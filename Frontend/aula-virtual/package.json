@@ -4,10 +4,13 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build && cp dist/aula-virtual/browser/index.csr.html dist/aula-virtual/browser/index.html",
+    "build": "ng build",
+    "postbuild": "[ -f dist/aula-virtual/browser/index.csr.html ] && cp dist/aula-virtual/browser/index.csr.html dist/aula-virtual/browser/index.html || echo 'index.csr.html no encontrado, omitiendo copia.'",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:aula-virtual": "node dist/aula-virtual/server/server.mjs"
+    "serve:ssr:aula-virtual": "node dist/aula-virtual/server/server.mjs",
+    "postbuild": "cp src/index.html dist/aula-virtual/browser/index.html"
+    
   },
   "private": true,
   "dependencies": {
@@ -48,3 +51,4 @@
     "typescript": "~5.7.2"
   }
 }
+
