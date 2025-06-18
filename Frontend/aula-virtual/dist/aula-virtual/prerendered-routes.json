@@ -1,9 +1,10 @@
 {
-  "routes": [
-    {
-      "route": "/*",
-      "serve": "/index.html",
-      "statusCode": 200
-    }
-  ]
+  "routes": {
+    "/": {},
+    "/login": {},
+    "/mi-hijo": {},
+    "/mi-rendimiento": {},
+    "/no-autorizado": {},
+    "/profesor": {}
+  }
 }

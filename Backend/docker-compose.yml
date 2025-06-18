@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:17
+    container_name: colegio
+    restart: always
+    environment:
+      POSTGRES_DB: colegio_db      # Aquí cambiamos el nombre de la base de datos a "PuntoVenta"
+      POSTGRES_USER: colegio_db
+      POSTGRES_PASSWORD: colegio_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - inventario_net
+
+volumes:
+  postgres_data:
+
+networks:
+  inventario_net:
+

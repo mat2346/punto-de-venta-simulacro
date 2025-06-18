@@ -1,0 +1,29 @@
+# ==================
+# Python / Django
+# ==================
+
+# Entorno virtual
+venv/
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Configuraciones locales / claves secretas
+.env
+/secrets/
+*.json
+
+# Base de datos local (SQLite u otras de prueba)
+*.sqlite3
+*.db
+
+# Archivos de log
+*.log
+
+# Archivos de migraciones cacheados (NO ignorar los archivos de migración .py)
+**/__pycache__/
+
+# Static files generados (si se generan automáticamente con collectstatic)
+staticfiles/

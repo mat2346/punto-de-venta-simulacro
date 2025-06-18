@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "231775026326",
+    "project_id": "colegio-dac30",
+    "storage_bucket": "colegio-dac30.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231775026326:android:2d69a334f2135e740196b7",
+        "android_client_info": {
+          "package_name": "com.example.aula_virtual"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdYDJwrpJs-OYajwiUaNs5eu9zmymti80"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
